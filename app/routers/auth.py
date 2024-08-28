@@ -62,9 +62,6 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         return {
             'username': username,
             'id': user_id,
-            'is_admin': is_admin,
-            'is_supplier': is_supplier,
-            'is_customer': is_customer,
         }
     except JWTError:
         raise HTTPException(
