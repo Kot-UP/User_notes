@@ -9,4 +9,5 @@ class Note(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_note = Column(String, ForeignKey('users.username'))
+    note = Column(String)
     #user = relationship("User", backref="notes")

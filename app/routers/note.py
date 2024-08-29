@@ -23,7 +23,6 @@ async def all_notes(db: Annotated[AsyncSession, Depends(get_db)],
                     get_user: Annotated[dict, Depends(get_current_username)]):
 
     if get_user:
-
         notes = await db.scalars(select(Note).where(Note.user_note == get_user.username))
         if notes is None:
             raise HTTPException(
@@ -51,7 +50,7 @@ async def create_note(db: Annotated[AsyncSession, Depends(get_db)], create_note:
             if len(list(result)) != 0:
                 return {'error' : 'Орфографическая ошибка'}
 
-            await db.execute(insert(Note).values(user_note=notes.note))
+            await db.execute(insert(Note).values(user_note=get_user.username, note=create_note.note))
             await db.commit()
             return {
                 'status_code': status.HTTP_201_CREATED,
