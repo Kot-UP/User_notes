@@ -1,5 +1,5 @@
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from app.models.user import User
 from app.schemas.user import CreateUser
 from app.backend.db_depends import get_db
@@ -21,7 +21,11 @@ bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 security = HTTPBasic()
 
-@router.post('/') # создание пользователя
+
+"""
+Создание нового пользователя
+"""
+@router.post('/')
 async def create_user(db: Annotated[AsyncSession, Depends(get_db)], create_user: CreateUser):
     await db.execute(insert(User).values(username=create_user.username,
                                          hashed_password=bcrypt_context.hash(create_user.password)))
@@ -32,7 +36,10 @@ async def create_user(db: Annotated[AsyncSession, Depends(get_db)], create_user:
     }
 
 
-async def get_current_username(db: Annotated[AsyncSession, Depends(get_db)], credentials: HTTPBasicCredentials = Depends(security)) -> dict:
+"""
+    Проверка пользователя на наличие в базе
+"""
+async def get_current_username(db: Annotated[AsyncSession, Depends(get_db)], credentials: HTTPBasicCredentials = Depends(security)):
     user = await db.scalar(select(User).where(User.username == credentials.username))
 
     if not user or not bcrypt_context.verify(credentials.password, user.hashed_password):
@@ -40,6 +47,9 @@ async def get_current_username(db: Annotated[AsyncSession, Depends(get_db)], cre
     return user
 
 
+"""
+    Получение данных о авторизированном пользователе
+"""
 @router.get('/users/me')
 async def read_current_user(user: dict = Depends(get_current_username)):
     return {'User': user}

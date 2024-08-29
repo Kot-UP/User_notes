@@ -15,12 +15,16 @@ router = APIRouter(prefix="/notes", tags=["notes"])
 speller = pyaspeller.YandexSpeller(lang='ru')
 
 
+"""
+    Получение всех заметок пользователя
+"""
 @router.get('/all_notes')
 async def all_notes(db: Annotated[AsyncSession, Depends(get_db)],
                     get_user: Annotated[dict, Depends(get_current_username)]):
 
-    if get_user.get('user'):
-        notes = await db.scalars(select(Note).where(Note.user_note))
+    if get_user:
+        #notes = await db.scalars(select(Note).where(Note.user_note))
+        notes = await db.scalars(select(Note).where(Note.user_note == get_user.username))
         if notes is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -34,26 +38,27 @@ async def all_notes(db: Annotated[AsyncSession, Depends(get_db)],
         )
 
 
+"""
+    Добавление заметки
+"""
 @router.post('/create')
 async def create_note(db: Annotated[AsyncSession, Depends(get_db)], create_note: CreateNote,
-                         get_user: Annotated[dict, Depends(get_current_username)]) -> dict:
+                         get_user: Annotated[dict, Depends(get_current_username)]):
 
-    if get_user.get('username'):
+    if get_user:
         try:
-            result = speller.spell(create_note.user_note)
+            result = speller.spell(create_note.note)
             if result:
                 return {'error' : 'Орфографическая ошибка'}
-        except Exception as e:
-            return {'error' : e}
 
-        await db.execute(insert(Note).values(user_note=create_note.note))
-        #await db.execute(insert(Note).values(user_id=get_user['user'].id, note=create_note.user_note))
-        await db.commit()
-        return {
-            'status_code': status.HTTP_201_CREATED,
-            'transaction': 'Successful'
-        }
-
+            await db.execute(insert(Note).values(user_note=create_note.note))
+            await db.commit()
+            return {
+                'status_code': status.HTTP_201_CREATED,
+                'transaction': 'Successful'
+            }
+        except Exception:
+            return {'error' : 'Что то не так!'}
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
